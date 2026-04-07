@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="songs-dashboard">
+    {% if has_activity %}
+        <div class="section-title">
+            <h2>Made For You</h2>
+            <div style="font-size: 14px; color: var(--accent-primary); font-weight: 600; cursor: pointer;">Show all</div>
+        </div>
+        
+        <div class="grid-container">
+            {% for song in personalized %}
+            <a href="{{ url_for('song_info', song_id=song.song_id) }}" class="glass-card">
+                <img src="{{ song.song_coverphoto }}" alt="{{ song.title }}" class="card-image" onerror="this.src='https://via.placeholder.com/300x300?text={{ song.title | urlencode }}'">
+                <div class="card-title">{{ song.title }}</div>
+                <div class="card-subtitle">{{ song.artist_name }}</div>
+                <div class="card-subtitle" style="margin-top: 4px; font-size: 11px; color: var(--accent-primary);">
+                    <i class="ph-fill ph-star"></i> {{ song.rating }}
+                </div>
+                <!-- Play button overlay -->
+                <div class="play-overlay">
+                    <i class="ph-fill ph-play" style="margin-left: 2px;"></i>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="section-title">
+        <h2>Top Global Tracks</h2>
+    </div>
+    
+    <div class="grid-container">
+        {% for song in top_songs %}
+        <a href="{{ url_for('song_info', song_id=song.song_id) }}" class="glass-card">
+            <img src="{{ song.song_coverphoto }}" alt="{{ song.title }}" class="card-image" onerror="this.src='https://via.placeholder.com/300x300?text={{ song.title | urlencode }}'">
+            <div class="card-title">{{ song.title }}</div>
+            <div class="card-subtitle">{{ song.artist_name }}</div>
+            <div class="card-subtitle" style="margin-top: 4px; font-size: 11px; color: var(--accent-primary);">
+                <i class="ph-fill ph-star"></i> {{ song.rating }}
+            </div>
+            
+            <!-- Play button overlay -->
+            <div class="play-overlay">
+                <i class="ph-fill ph-play" style="margin-left: 2px;"></i>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

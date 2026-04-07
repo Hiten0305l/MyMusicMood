@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="profile-header" style="display: flex; align-items: center; gap: 32px; padding: 40px; background: var(--bg-surface-light); border-radius: 24px; margin-bottom: 40px;">
+    <div style="width: 150px; height: 150px; border-radius: 50%; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; font-size: 64px; font-weight: 800; box-shadow: 0 10px 30px rgba(255,42,95,0.3);">
+        {{ user.username[0] | upper if user else 'U' }}
+    </div>
+    <div>
+        <div style="font-size: 14px; text-transform: uppercase; color: var(--text-secondary); font-weight: 700; letter-spacing: 1px; margin-bottom: 8px;">Profile</div>
+        <h1 style="font-size: 64px; font-weight: 800; letter-spacing: -2px; margin-bottom: 8px;">{{ user.username if user else 'Unknown' }}</h1>
+        <p>Member since {{ user.created_at.strftime('%Y') if user and user.created_at else 'recently' }}</p>
+    </div>
+</div>
+
+<div style="max-width: 600px;">
+    <h2 style="margin-bottom: 24px;">Edit Profile Options</h2>
+    <div style="background: var(--glass-bg); padding: 32px; border-radius: 16px; border: 1px solid var(--glass-border);">
+        <form method="POST">
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Username</label>
+                <input type="text" name="username" class="glass-input" value="{{ user.username if user else '' }}" required>
+            </div>
+            <div style="margin-bottom: 32px;">
+                <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px;">Email Address</label>
+                <input type="email" name="email" class="glass-input" value="{{ user.email if user else '' }}" required>
+            </div>
+            <button type="submit" class="btn-primary">Save Changes</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

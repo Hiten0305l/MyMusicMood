@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% if selected_artist_id %}
+<!-- Showing Songs for a specific artist -->
+<div class="section-title">
+    <a href="{{ url_for('artists') }}" style="margin-right: 16px; color: var(--text-secondary);"><i class="ph ph-arrow-left"></i></a>
+    <h2 style="font-size: 32px;">{{ artist_name }}'s Tracks</h2>
+</div>
+
+<div class="grid-container">
+    {% for song in songs %}
+    <a href="{{ url_for('song_info', song_id=song.song_id) }}" class="glass-card">
+        <img src="{{ song.song_coverphoto }}" alt="{{ song.title }}" class="card-image" onerror="this.src='https://via.placeholder.com/300x300?text={{ song.title | urlencode }}'">
+        <div class="card-title">{{ song.title }}</div>
+        <div class="card-subtitle" style="margin-top: 4px; font-size: 11px; color: var(--accent-primary);">
+            <i class="ph-fill ph-star"></i> {{ song.rating }}
+        </div>
+        <div class="play-overlay"><i class="ph-fill ph-play" style="margin-left: 2px;"></i></div>
+    </a>
+    {% endfor %}
+</div>
+{% if not songs %}
+<p style="color: var(--text-muted);">No songs found for this artist.</p>
+{% endif %}
+
+{% else %}
+<!-- Showing Top Artists Directory -->
+<div class="section-title">
+    <h2>Explore Artists</h2>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 32px;">
+    {% for artist in top_artists %}
+    <a href="{{ url_for('artists', id=artist.artist_id) }}" style="text-align: center; display: block;" class="hover-scale">
+        <img src="{{ artist.artist_coverphoto }}" alt="{{ artist.artist_name }}" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; box-shadow: 0 10px 20px rgba(0,0,0,0.3); margin-bottom: 16px; transition: var(--transition-fast);" onerror="this.src='https://via.placeholder.com/150x150?text={{ artist.artist_name.replace(' ', '+') }}'">
+        <div style="font-size: 15px; font-weight: 600;">{{ artist.artist_name }}</div>
+        {% if artist.total_searches > 0 %}
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">{{ artist.total_searches }} Plays</div>
+        {% endif %}
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Extra hover CSS for circles explicitly -->
+<style>
+.hover-scale img:hover { transform: scale(1.05); box-shadow: 0 15px 30px rgba(0,0,0,0.4); }
+.hover-scale:hover div:first-of-type { color: var(--accent-primary); }
+</style>
+{% endif %}
+
+{% endblock %}

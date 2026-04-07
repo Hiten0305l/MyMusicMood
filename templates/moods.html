@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% if selected_mood_id %}
+<!-- Showing Songs for a specific mood -->
+<div class="section-title">
+    <a href="{{ url_for('moods') }}" style="margin-right: 16px; color: var(--text-secondary);"><i class="ph ph-arrow-left"></i></a>
+    <h2>The {{ mood_name }} Mood</h2>
+</div>
+
+<div class="grid-container">
+    {% for song in songs %}
+    <a href="{{ url_for('song_info', song_id=song.song_id) }}" class="glass-card">
+        <img src="{{ song.song_coverphoto }}" alt="{{ song.title }}" class="card-image" onerror="this.src='https://via.placeholder.com/300x300?text={{ song.title | urlencode }}'">
+        <div class="card-title">{{ song.title }}</div>
+        <div class="card-subtitle">{{ song.artist_name }}</div>
+        <div class="card-subtitle" style="margin-top: 4px; font-size: 11px; color: var(--accent-primary);">
+            <i class="ph-fill ph-star"></i> {{ song.rating }}
+        </div>
+        <div class="play-overlay"><i class="ph-fill ph-play" style="margin-left: 2px;"></i></div>
+    </a>
+    {% endfor %}
+</div>
+
+{% else %}
+<!-- Showing Moods Directory -->
+<div class="section-title">
+    <h2>Feeling Something?</h2>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 24px;">
+    {% for mood in top_moods %}
+    <a href="{{ url_for('moods', id=mood.mood_id) }}" class="mood-card" style="position: relative; height: 120px; border-radius: 16px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: {{ ['linear-gradient(135deg, #FF6B6B, #FF8E53)', 'linear-gradient(135deg, #4E65FF, #92EFFD)', 'linear-gradient(135deg, #11998e, #38ef7d)', 'linear-gradient(135deg, #8A2387, #E94057, #F27121)', 'linear-gradient(135deg, #C33764, #1D2671)'][loop.index0 % 5] }}; transition: var(--transition-fast);">
+        <h3 style="color: white; font-size: 24px; position: relative; z-index: 2; text-shadow: 0 4px 10px rgba(0,0,0,0.3);">{{ mood.mood_name }}</h3>
+        <!-- Overlay -->
+        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.2); z-index: 1;"></div>
+    </a>
+    {% endfor %}
+</div>
+
+<style>
+.mood-card:hover { transform: scale(1.03); box-shadow: 0 12px 24px rgba(0,0,0,0.3); }
+</style>
+{% endif %}
+
+{% endblock %}

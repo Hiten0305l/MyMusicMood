@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="section-title">
+    <h2>Recently Played</h2>
+</div>
+
+<div class="history-list" style="margin-top: 24px;">
+    <!-- Columns Header -->
+    <div style="display: flex; align-items: center; padding: 0 16px 12px 16px; border-bottom: 1px solid var(--glass-border); margin-bottom: 16px; color: var(--text-muted); font-size: 12px; text-transform: uppercase; font-weight: 600;">
+        <div style="width: 50px;">#</div>
+        <div style="flex: 1;">Title</div>
+        <div style="width: 200px;">Visits</div>
+        <div style="width: 200px; text-align: right;">Last Played</div>
+    </div>
+    
+    {% if history %}
+        {% for item in history %}
+        <div class="list-item" onclick="window.location.href='/song/{{ item.song_id }}'" style="cursor: pointer;">
+            <div class="list-item-left" style="flex: 1;">
+                <div style="width: 34px; color: var(--text-muted); font-weight: 500;">{{ loop.index }}</div>
+                <img src="{{ item.song_coverphoto }}" alt="Cover" onerror="this.src='https://via.placeholder.com/48'">
+                <div>
+                    <div style="font-weight: 600; font-size: 15px;">{{ item.title }}</div>
+                    <div style="color: var(--text-secondary); font-size: 13px; margin-top: 2px;">{{ item.artist_name }}</div>
+                </div>
+            </div>
+            <div style="width: 200px; color: var(--text-secondary); font-size: 14px;">
+                {{ item.search_count }} plays
+            </div>
+            <div style="width: 200px; text-align: right; color: var(--text-muted); font-size: 13px;">
+                {{ item.last_searched.strftime('%Y-%m-%d %H:%M') if item.last_searched else 'Unknown' }}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+            <i class="ph ph-music-notes" style="font-size: 48px; margin-bottom: 16px;"></i>
+            <p>You haven't explored any songs yet!</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

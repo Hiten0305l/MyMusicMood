@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MyMusicMood{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Phosphor Icons for modern sleek icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+    {% if session.get('user_id') %}
+    <!-- Main App Container for Logged-In Users -->
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>MyMusicMood</h2>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-label" style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 8px; padding-left: 16px;">Menu</div>
+                <a href="{{ url_for('songs') }}" class="{% if request.endpoint == 'songs' %}active{% endif %}"><i class="ph ph-house"></i> Home</a>
+                <a href="{{ url_for('profile') }}" class="{% if request.endpoint == 'profile' %}active{% endif %}"><i class="ph ph-user"></i> Profile</a>
+                <a href="{{ url_for('history') }}" class="{% if request.endpoint == 'history' %}active{% endif %}"><i class="ph ph-clock-counter-clockwise"></i> History</a>
+                
+                <div class="nav-label" style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-top: 24px; margin-bottom: 8px; padding-left: 16px;">library</div>
+                <a href="{{ url_for('artists') }}" class="{% if request.endpoint == 'artists' %}active{% endif %}"><i class="ph ph-users"></i> Artists</a>
+                <a href="{{ url_for('moods') }}" class="{% if request.endpoint == 'moods' %}active{% endif %}"><i class="ph ph-smiley"></i> Moods</a>
+                <a href="{{ url_for('languages') }}" class="{% if request.endpoint == 'languages' %}active{% endif %}"><i class="ph ph-globe"></i> Languages</a>
+            </nav>
+            
+            <div style="margin-top: auto;">
+                <a href="{{ url_for('logout') }}" style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 14px;"><i class="ph ph-sign-out"></i> Logout</a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Topbar (Search & Profile) -->
+            <header class="topbar">
+                <div style="position: relative;">
+                    <div class="search-bar">
+                        <i class="ph ph-magnifying-glass" style="color: var(--text-secondary);"></i>
+                        <input type="text" id="global-search" placeholder="Search for songs, artists...">
+                    </div>
+                    <!-- AJAX Search Results Dropdown -->
+                    <div id="search-results" class="search-results"></div>
+                </div>
+
+                <div class="profile-menu">
+                    <div class="profile-avatar">
+                        M <!-- Default Initial -->
+                    </div>
+                    <span style="font-weight: 600; font-size: 14px;">Me</span>
+                </div>
+            </header>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                {% for category, message in messages %}
+                  <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Persistent Bottom Player Placeholder -->
+    <div class="player-bar">
+        <div class="player-track">
+            <div id="player-thumb" style="width: 56px; height: 56px; border-radius: 8px; background: var(--bg-surface-light);"></div>
+            <div>
+                <div id="player-title" style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">My Music Mood</div>
+                <div id="player-artist" style="font-size: 12px; color: var(--text-secondary);">Waiting for selection...</div>
+            </div>
+        </div>
+        <div class="player-controls">
+            <div class="control-buttons">
+                <button class="control-btn"><i class="ph ph-shuffle"></i></button>
+                <button class="control-btn"><i class="ph ph-skip-back-circle"></i></button>
+                <button class="control-btn play"><i class="ph ph-play"></i></button>
+                <button class="control-btn"><i class="ph ph-skip-forward-circle"></i></button>
+                <button class="control-btn"><i class="ph ph-repeat"></i></button>
+            </div>
+            <div class="progress-container">
+                <span>0:00</span>
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <span>3:45</span>
+            </div>
+        </div>
+        <div style="width: 30%; display: flex; justify-content: flex-end;">
+            <button class="control-btn"><i class="ph ph-speaker-high"></i></button>
+        </div>
+    </div>
+
+    <!-- AJAX Search Script -->
+    <script>
+        $(document).ready(function() {
+            $('#global-search').on('input', function() {
+                const query = $(this).val();
+                if (query.length > 2) {
+                    $.get('/search', { q: query }, function(data) {
+                        let html = '';
+                        if (data.length > 0) {
+                            data.forEach(song => {
+                                html += `
+                                    <div class="search-result-item" onclick="window.location.href='/song/${song.song_id}'">
+                                        <img src="${song.coverphoto || 'https://via.placeholder.com/40'}" alt="Cover">
+                                        <div>
+                                            <div style="font-weight:600; font-size:14px">${song.title}</div>
+                                            <div style="font-size:12px; color:var(--text-secondary)">${song.artist}</div>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            $('#search-results').html(html).addClass('active');
+                        } else {
+                            $('#search-results').removeClass('active');
+                        }
+                    });
+                } else {
+                    $('#search-results').removeClass('active');
+                }
+            });
+
+            // Close search when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.search-bar, .search-results').length) {
+                    $('#search-results').removeClass('active');
+                }
+            });
+        });
+    </script>
+
+    {% else %}
+        <!-- For non-logged-in users (Auth Pages) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; width: 90%; max-width: 400px;">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        
+        {% block auth_content %}{% endblock %}
+    {% endif %}
+    
+</body>
+</html>

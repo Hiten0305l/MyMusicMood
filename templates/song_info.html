@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Decorative Background Glow -->
+<div style="position: absolute; top: -100px; left: -100px; width: 400px; height: 400px; background: var(--accent-secondary); filter: blur(150px); opacity: 0.2; border-radius: 50%; z-index: 0; pointer-events: none;"></div>
+
+<div class="song-info-layout" style="display: flex; gap: 48px; position: relative; z-index: 1;">
+    <!-- Left Column: Album Art -->
+    <div style="width: 350px;">
+        <img src="{{ song.song_coverphoto }}" alt="{{ song.title }}" style="width: 100%; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);" onerror="this.src='https://via.placeholder.com/350x350?text={{ song.title | urlencode }}'">
+    </div>
+    
+    <!-- Right Column: Details -->
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+        <div class="badge" style="display: inline-block; width: max-content; margin-bottom: 16px;">
+            <i class="ph-fill ph-check-circle" style="color: var(--accent-primary);"></i> Verified Track
+        </div>
+        
+        <h1 style="font-size: 48px; font-weight: 800; letter-spacing: -2px; margin-bottom: 8px;">{{ song.title }}</h1>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 32px;">
+            <img src="{{ song.artist_coverphoto }}" alt="{{ song.artist_name }}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" onerror="this.src='https://via.placeholder.com/32x32?text=A'">
+            <a href="{{ url_for('artists', id=song.artist_id) }}" style="font-size: 18px; font-weight: 600;">{{ song.artist_name }}</a>
+            <span style="color: var(--text-muted);">•</span>
+            <span style="color: var(--text-secondary);">{{ song.year or '2023' }}</span>
+            <span style="color: var(--text-muted);">•</span>
+            <span style="color: var(--text-secondary);">{{ song.rating }} <i class="ph-fill ph-star" style="color: var(--accent-primary);"></i></span>
+        </div>
+        
+        <div style="display: flex; gap: 16px; margin-bottom: 40px;">
+            <button class="btn-primary" style="display: flex; align-items: center; gap: 8px; font-size: 16px; padding: 14px 32px; border-radius: 30px;">
+                <i class="ph-fill ph-play"></i> Play Track
+            </button>
+            <button class="control-btn" style="width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center;">
+                <i class="ph ph-heart"></i>
+            </button>
+            <button class="control-btn" style="width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center;">
+                <i class="ph ph-dots-three"></i>
+            </button>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; background: var(--glass-bg); padding: 24px; border-radius: 16px; border: 1px solid var(--glass-border);">
+            <div>
+                <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Language</div>
+                <a href="{{ url_for('languages', id=song.language_id) }}"><div style="font-size: 16px; font-weight: 500;">{{ song.language_name }}</div></a>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Mood</div>
+                <a href="{{ url_for('moods', id=song.mood_id) }}"><div style="font-size: 16px; font-weight: 500;">{{ song.mood_name }}</div></a>
+            </div>
+            {% if song.genre %}
+            <div>
+                <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Genre</div>
+                <div style="font-size: 16px; font-weight: 500;">{{ song.genre }}</div>
+            </div>
+            {% endif %}
+            {% if song.album %}
+            <div>
+                <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Album</div>
+                <div style="font-size: 16px; font-weight: 500;">{{ song.album }}</div>
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if song.description %}
+        <div style="margin-top: 32px;">
+            <h3 style="margin-bottom: 12px;">About this track</h3>
+            <p style="font-size: 14px;">{{ song.description[:300] }}...</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
