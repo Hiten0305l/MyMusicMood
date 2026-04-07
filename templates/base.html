@@ -143,13 +143,21 @@
         });
 
         // Makes the bottom player look like it's playing
-        function playSong(title, artist, cover) {
+        function playSong(event, title, artist, cover, youtubeLink) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
             document.getElementById('player-title').innerText = title;
             document.getElementById('player-artist').innerText = artist;
             document.getElementById('player-thumb').style.backgroundImage = 'url(' + cover + ')';
             document.getElementById('player-thumb').style.backgroundSize = 'cover';
             document.getElementById('player-thumb').style.backgroundPosition = 'center';
             document.querySelector('.control-btn.play i').classList.replace('ph-play', 'ph-pause');
+            
+            if (youtubeLink && youtubeLink !== 'None' && youtubeLink !== '') {
+                window.open(youtubeLink, "_blank");
+            }
         }
     </script>
 

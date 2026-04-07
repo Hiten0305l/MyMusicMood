@@ -18,7 +18,7 @@
                     <i class="ph-fill ph-star"></i> {{ song.rating }}
                 </div>
                 <!-- Play button overlay -->
-                <div class="play-overlay">
+                <div class="play-overlay" onclick='playSong(event, {{ song.title|tojson|safe }}, {{ song.artist_name|tojson|safe }}, "{{ song.song_coverphoto }}", null)'>
                     <i class="ph-fill ph-play" style="margin-left: 2px;"></i>
                 </div>
             </a>
@@ -41,7 +41,7 @@
             </div>
             
             <!-- Play button overlay -->
-            <div class="play-overlay">
+            <div class="play-overlay" onclick='playSong(event, {{ song.title|tojson|safe }}, {{ song.artist_name|tojson|safe }}, "{{ song.song_coverphoto }}", null)'>
                 <i class="ph-fill ph-play" style="margin-left: 2px;"></i>
             </div>
         </a>

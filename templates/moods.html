@@ -18,7 +18,7 @@
         <div class="card-subtitle" style="margin-top: 4px; font-size: 11px; color: var(--accent-primary);">
             <i class="ph-fill ph-star"></i> {{ song.rating }}
         </div>
-        <div class="play-overlay"><i class="ph-fill ph-play" style="margin-left: 2px;"></i></div>
+        <div class="play-overlay" onclick='playSong(event, {{ song.title|tojson|safe }}, {{ song.artist_name|tojson|safe }}, "{{ song.song_coverphoto }}", null)'><i class="ph-fill ph-play" style="margin-left: 2px;"></i></div>
     </a>
     {% endfor %}
 </div>

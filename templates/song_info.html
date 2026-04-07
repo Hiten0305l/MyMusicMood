@@ -27,7 +27,7 @@
         </div>
         
         <div style="display: flex; gap: 16px; margin-bottom: 40px;">
-            <button class="btn-primary" onclick='playSong({{ song.title|tojson|safe }}, {{ song.artist_name|tojson|safe }}, "{{ song.track_thumb or song.album_thumb or song.song_coverphoto }}"); {% if song.youtube_link %}window.open("{{ song.youtube_link }}", "_blank");{% endif %}' style="display: flex; align-items: center; gap: 8px; font-size: 16px; padding: 14px 32px; border-radius: 30px;">
+            <button type="button" class="btn-primary" onclick='playSong(event, {{ song.title|tojson|safe }}, {{ song.artist_name|tojson|safe }}, "{{ song.track_thumb or song.album_thumb or song.song_coverphoto }}", "{{ song.youtube_link|default(\"\", true) }}");' style="display: flex; align-items: center; gap: 8px; font-size: 16px; padding: 14px 32px; border-radius: 30px;">
                 <i class="ph-fill ph-play"></i> Play Track
             </button>
             <button class="control-btn" style="width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center;">
