@@ -1,8 +1,5 @@
 -- My Music Mood Database Schema
 
-CREATE DATABASE IF NOT EXISTS my_music_mood;
-USE my_music_mood;
-
 CREATE TABLE IF NOT EXISTS users (
     user_id INT PRIMARY KEY AUTO_INCREMENT,
     username VARCHAR(100) NOT NULL,

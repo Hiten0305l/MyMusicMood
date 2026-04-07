@@ -1,7 +1,5 @@
 -- Sample data for testing My Music Mood
 
-USE my_music_mood;
-
 -- Insert sample languages
 INSERT INTO languages (language_name) VALUES
 ('English'),

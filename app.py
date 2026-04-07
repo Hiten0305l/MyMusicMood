@@ -18,7 +18,8 @@ DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
     'user': os.getenv('DB_USER', 'root'),
     'password': os.getenv('DB_PASSWORD', ''),
-    'database': os.getenv('DB_NAME', 'my_music_mood')
+    'database': os.getenv('DB_NAME', 'my_music_mood'),
+    'port': int(os.getenv('DB_PORT', 3306))
 }
 
 def get_db_connection():
