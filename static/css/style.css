@@ -23,7 +23,7 @@
   
   /* Sizing */
   --sidebar-width: 260px;
-  --player-height: 90px;
+  --player-height: 100px;
   
   /* Layout Transitions */
   --transition-fast: 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -261,13 +261,19 @@ ul { list-style: none; }
   display: flex;
   align-items: center;
   gap: 16px;
-  width: 30%;
+  width: 35%;
 }
-.player-thumb {
-  width: 56px;
-  height: 56px;
+#player-thumb {
+  width: 64px;
+  height: 64px;
   border-radius: 8px;
-  object-fit: cover;
+  background-color: var(--bg-surface-light);
+  flex-shrink: 0;
+  transition: var(--transition-smooth);
+}
+#player-thumb:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(255, 42, 95, 0.3);
 }
 .player-controls {
   display: flex;

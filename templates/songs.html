@@ -10,15 +10,15 @@
         
         <div class="grid-container">
             {% for song in personalized %}
-            <a href="{{ url_for('song_info', song_id=song.song_id) }}" class="glass-card">
-                <img src="{{ song.song_coverphoto }}" alt="{{ song.title }}" class="card-image" onerror="this.src='https://via.placeholder.com/300x300?text={{ song.title | urlencode }}'">
+            <a href="{{ url_for('song_info', song_id=song.song_id) }}" class="glass-card" data-lazy-song="{{ song.song_id }}">
+                <img src="{{ song.song_coverphoto }}" alt="{{ song.title }}" class="card-image lazy-img" onerror="this.src='https://dummyimage.com/300x300/18181b/ffffff&text={{ song.title | urlencode }}'">
                 <div class="card-title">{{ song.title }}</div>
                 <div class="card-subtitle">{{ song.artist_name }}</div>
                 <div class="card-subtitle" style="margin-top: 4px; font-size: 11px; color: var(--accent-primary);">
                     <i class="ph-fill ph-star"></i> {{ song.rating }}
                 </div>
                 <!-- Play button overlay -->
-                <div class="play-overlay" onclick='playSong(event, {{ song.title|tojson|safe }}, {{ song.artist_name|tojson|safe }}, "{{ song.song_coverphoto }}", null)'>
+                <div class="play-overlay" onclick='playSong(event, {{ song.title|tojson|safe }}, {{ song.artist_name|tojson|safe }}, "{{ song.song_coverphoto }}", {{ (song.youtube_link|tojson|safe) if song.youtube_link else "null" }})'>
                     <i class="ph-fill ph-play" style="margin-left: 2px;"></i>
                 </div>
             </a>
@@ -32,8 +32,8 @@
     
     <div class="grid-container">
         {% for song in top_songs %}
-        <a href="{{ url_for('song_info', song_id=song.song_id) }}" class="glass-card">
-            <img src="{{ song.song_coverphoto }}" alt="{{ song.title }}" class="card-image" onerror="this.src='https://via.placeholder.com/300x300?text={{ song.title | urlencode }}'">
+        <a href="{{ url_for('song_info', song_id=song.song_id) }}" class="glass-card" data-lazy-song="{{ song.song_id }}">
+            <img src="{{ song.song_coverphoto }}" alt="{{ song.title }}" class="card-image lazy-img" onerror="this.src='https://dummyimage.com/300x300/18181b/ffffff&text={{ song.title | urlencode }}'">
             <div class="card-title">{{ song.title }}</div>
             <div class="card-subtitle">{{ song.artist_name }}</div>
             <div class="card-subtitle" style="margin-top: 4px; font-size: 11px; color: var(--accent-primary);">
@@ -48,4 +48,34 @@
         {% endfor %}
     </div>
 </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const lazySongs = document.querySelectorAll('[data-lazy-song]');
+    lazySongs.forEach(card => {
+        const songId = card.getAttribute('data-lazy-song');
+        const img = card.querySelector('.lazy-img');
+        
+        fetch(`/api/track-metadata/${songId}`)
+            .then(res => res.json())
+            .then(data => {
+                if ((data.coverphoto && !data.coverphoto.includes('placeholder')) || data.youtube_link) {
+                    if (data.coverphoto) img.src = data.coverphoto;
+                    // Update play button context
+                    const playBtn = card.querySelector('.play-overlay');
+                    if (playBtn) {
+                        const parts = playBtn.getAttribute('onclick').split(',');
+                        if (parts.length >= 5) {
+                            if (data.coverphoto) parts[3] = ` "${data.coverphoto}"`;
+                            if (data.youtube_link) parts[4] = ` "${data.youtube_link}")`;
+                            playBtn.setAttribute('onclick', parts.join(','));
+                        }
+                    }
+                }
+            })
+            .catch(err => console.error('Lazy load failed:', err));
+    });
+});
+</script>
 {% endblock %}

@@ -17,9 +17,10 @@
     {% if history %}
         {% for item in history %}
         <div class="list-item" onclick="window.location.href='/song/{{ item.song_id }}'" style="cursor: pointer;">
+            <div class="play-overlay" onclick='playSong(event, {{ item.title|tojson|safe }}, {{ item.artist_name|tojson|safe }}, "{{ item.song_coverphoto }}", {{ (item.youtube_link|tojson|safe) if item.youtube_link else "null" }})'><i class="ph-fill ph-play" style="margin-left: 2px;"></i></div>
             <div class="list-item-left" style="flex: 1;">
                 <div style="width: 34px; color: var(--text-muted); font-weight: 500;">{{ loop.index }}</div>
-                <img src="{{ item.song_coverphoto }}" alt="Cover" onerror="this.src='https://via.placeholder.com/48'">
+                <img src="{{ item.song_coverphoto }}" alt="Cover" onerror="this.src='https://dummyimage.com/48x48/18181b/ffffff&text=Cover'">
                 <div>
                     <div style="font-weight: 600; font-size: 15px;">{{ item.title }}</div>
                     <div style="color: var(--text-secondary); font-size: 13px; margin-top: 2px;">{{ item.artist_name }}</div>

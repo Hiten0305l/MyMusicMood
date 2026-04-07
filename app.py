@@ -42,7 +42,7 @@ def require_login(f):
 
 def fetch_audiodb_data(endpoint, params=None):
     """Fetch data from TheAudioDB public API (free key = 123)."""
-    base_url = "https://www.theaudiodb.com/api/v1/json/123"
+    base_url = "https://www.theaudiodb.com/api/v1/json/2"
     url = f"{base_url}/{endpoint}.php"
     try:
         response = requests.get(url, params=params, timeout=5)
@@ -251,30 +251,7 @@ def song_info(song_id):
             'mood_name': song[10]
         }
 
-        # 🔹 Fetch extra info from TheAudioDB
-        try:
-            query = song_data['title']
-            artist = song_data['artist_name']
-            api_url = f"https://theaudiodb.com/api/v1/json/2/searchtrack.php?s={artist}&t={query}"
-            response = requests.get(api_url)
-            
-            if response.status_code == 200:
-                data = response.json()
-                if data and data.get("track"):
-                    track = data["track"][0]
-                    song_data.update({
-                        'album': track.get('strAlbum'),
-                        'genre': track.get('strGenre'),
-                        'year': track.get('intYearReleased'),
-                        'duration': track.get('intDuration'),
-                        'description': track.get('strDescriptionEN'),
-                        'track_thumb': track.get('strTrackThumb'),
-                        'album_thumb': track.get('strAlbumThumb'),
-                        'youtube_link': track.get('strMusicVid')
-                    })
-        except Exception as e:
-            print(f"AudioDB fetch failed: {e}")
-        
+        # API metadata fetching is now handled asynchronously by the frontend via /api/track-metadata
         return render_template('song_info.html', song=song_data)
         
     except Error as e:
@@ -306,7 +283,7 @@ def songs():
             # Get personalized recommendations
             cursor.execute("""
                 SELECT DISTINCT s2.song_id, s2.title, s2.song_coverphoto,
-                       a2.name AS artist_name, a2.artist_coverphoto, s2.rating
+                       a2.name AS artist_name, a2.artist_coverphoto, s2.rating, s2.youtube_link
                 FROM user_activity ua
                 JOIN songs s1 ON ua.song_id = s1.song_id
                 JOIN songs s2 ON (s1.artist_id = s2.artist_id OR s1.mood_id = s2.mood_id)
@@ -324,13 +301,14 @@ def songs():
                 'song_coverphoto': row[2],
                 'artist_name': row[3],
                 'artist_coverphoto': row[4],
-                'rating': float(row[5])
+                'rating': float(row[5]),
+                'youtube_link': row[6]
             } for row in cursor.fetchall()]
 
         # Get overall top songs
         cursor.execute("""
             SELECT s.song_id, s.title, s.song_coverphoto,
-                   a.name AS artist_name, a.artist_coverphoto, s.rating
+                   a.name AS artist_name, a.artist_coverphoto, s.rating, s.youtube_link
             FROM songs s
             JOIN artists a ON s.artist_id = a.artist_id
             ORDER BY s.rating DESC
@@ -343,63 +321,20 @@ def songs():
             'song_coverphoto': row[2],
             'artist_name': row[3],
             'artist_coverphoto': row[4],
-            'rating': float(row[5])
+            'rating': float(row[5]),
+            'youtube_link': row[6]
         } for row in cursor.fetchall()]
 
         cursor.close()
         conn.close()
 
-        # 🔹 Merge AudioDB Data for Personalized Songs
-        for song in personalized:
-            try:
-                url = f"https://theaudiodb.com/api/v1/json/2/searchtrack.php?s={song['artist_name']}&t={song['title']}"
-                r = requests.get(url)
-                if r.status_code == 200:
-                    data = r.json()
-                    if data.get('track'):
-                        track = data['track'][0]
-                        song.update({
-                            'genre': track.get('strGenre'),
-                            'album': track.get('strAlbum'),
-                            'year': track.get('intYearReleased'),
-                            'track_thumb': track.get('strTrackThumb'),
-                            'album_thumb': track.get('strAlbumThumb')
-                        })
-                        # Prefer API cover photo if available
-                        if not song['song_coverphoto'] and track.get('strTrackThumb'):
-                            song['song_coverphoto'] = track['strTrackThumb']
-            except Exception as e:
-                print(f"AudioDB fetch failed (personalized): {e}")
-
-        # 🔹 Merge AudioDB Data for Top Songs
-        for song in top_songs:
-            try:
-                url = f"https://theaudiodb.com/api/v1/json/2/searchtrack.php?s={song['artist_name']}&t={song['title']}"
-                r = requests.get(url)
-                if r.status_code == 200:
-                    data = r.json()
-                    if data.get('track'):
-                        track = data['track'][0]
-                        song.update({
-                            'genre': track.get('strGenre'),
-                            'album': track.get('strAlbum'),
-                            'year': track.get('intYearReleased'),
-                            'track_thumb': track.get('strTrackThumb'),
-                            'album_thumb': track.get('strAlbumThumb')
-                        })
-                        track_thumb = track.get('strTrackThumb')
-                        album_thumb = track.get('strAlbumThumb')
-
-                        # Prefer API thumbnail if DB one is missing or invalid
-                        if not song.get('song_coverphoto') or song['song_coverphoto'].strip() in ['', 'None', None]:
-                            song['song_coverphoto'] = track_thumb or album_thumb or 'https://via.placeholder.com/300x300?text=No+Image'
-
-                        # Keep for template compatibility
-                        song['track_thumb'] = track_thumb
-                        song['album_thumb'] = album_thumb
-
-            except Exception as e:
-                print(f"AudioDB fetch failed (top): {e}")
+        # 🔹 API metadata fetching is now handled asynchronously by the frontend via /api/track-metadata
+        return render_template(
+            'songs.html',
+            personalized=personalized,
+            top_songs=top_songs,
+            has_activity=activity > 0
+        )
 
         return render_template(
             'songs.html',
@@ -434,7 +369,7 @@ def languages():
             cursor.execute("""
                 SELECT s.song_id, s.title, s.song_coverphoto, 
                        a.name AS artist_name, a.artist_coverphoto,
-                       l.language_name, s.rating
+                       l.language_name, s.rating, s.youtube_link
                 FROM songs s
                 JOIN artists a ON s.artist_id = a.artist_id
                 JOIN languages l ON s.language_id = l.language_id
@@ -450,25 +385,25 @@ def languages():
                 'artist_name': row[3],
                 'artist_coverphoto': row[4],
                 'language_name': row[5],
-                'rating': float(row[6])
+                'rating': float(row[6]),
+                'youtube_link': row[7]
             } for row in cursor.fetchall()]
             
             cursor.close()
             conn.close()
             return render_template('languages.html', top_languages=[], songs=songs, selected_language_id=language_id)
         
-        # Get top languages by user history
+        # Get all languages, including those without history
         cursor.execute("""
             SELECT 
                 l.language_id,
                 l.language_name,
-                SUM(ua.search_count) AS total_searches
-            FROM user_activity ua
-            JOIN songs s ON ua.song_id = s.song_id
-            JOIN languages l ON s.language_id = l.language_id
-            WHERE ua.user_id = %s
+                COALESCE(SUM(ua.search_count), 0) AS total_searches
+            FROM languages l
+            LEFT JOIN songs s ON l.language_id = s.language_id
+            LEFT JOIN user_activity ua ON s.song_id = ua.song_id AND ua.user_id = %s
             GROUP BY l.language_id, l.language_name
-            ORDER BY total_searches DESC
+            ORDER BY total_searches DESC, l.language_name ASC
         """, (user_id,))
         
         top_languages = [{
@@ -476,15 +411,6 @@ def languages():
             'language_name': row[1],
             'total_searches': row[2]
         } for row in cursor.fetchall()]
-        
-        # If no history, show all languages
-        if not top_languages:
-            cursor.execute("SELECT language_id, language_name FROM languages")
-            top_languages = [{
-                'language_id': row[0],
-                'language_name': row[1],
-                'total_searches': 0
-            } for row in cursor.fetchall()]
         
         cursor.close()
         conn.close()
@@ -515,8 +441,9 @@ def artists():
         if artist_id:
             # Get top songs by selected artist
             cursor.execute("""
-                SELECT s.song_id, s.title, s.song_coverphoto, s.rating
+                SELECT s.song_id, s.title, s.song_coverphoto, s.rating, a.name as artist_name, s.youtube_link
                 FROM songs s
+                JOIN artists a ON s.artist_id = a.artist_id
                 WHERE s.artist_id = %s
                 ORDER BY s.rating DESC
             """, (artist_id,))
@@ -525,7 +452,9 @@ def artists():
                 'song_id': row[0],
                 'title': row[1],
                 'song_coverphoto': row[2],
-                'rating': float(row[3])
+                'rating': float(row[3]),
+                'artist_name': row[4],
+                'youtube_link': row[5]
             } for row in cursor.fetchall()]
             
             # Get artist info
@@ -537,19 +466,18 @@ def artists():
             return render_template('artists.html', top_artists=[], songs=songs, 
                                  selected_artist_id=artist_id, artist_name=artist_info[0] if artist_info else '')
         
-        # Get top artists by user history
+        # Get all artists, including those without history
         cursor.execute("""
             SELECT 
                 a.artist_id,
                 a.name AS artist_name,
                 a.artist_coverphoto,
-                SUM(ua.search_count) AS total_searches
-            FROM user_activity ua
-            JOIN songs s ON ua.song_id = s.song_id
-            JOIN artists a ON s.artist_id = a.artist_id
-            WHERE ua.user_id = %s
+                COALESCE(SUM(ua.search_count), 0) AS total_searches
+            FROM artists a
+            LEFT JOIN songs s ON a.artist_id = s.artist_id
+            LEFT JOIN user_activity ua ON s.song_id = ua.song_id AND ua.user_id = %s
             GROUP BY a.artist_id, a.name, a.artist_coverphoto
-            ORDER BY total_searches DESC
+            ORDER BY total_searches DESC, a.name ASC
         """, (user_id,))
         
         top_artists = [{
@@ -558,16 +486,12 @@ def artists():
             'artist_coverphoto': row[2],
             'total_searches': row[3]
         } for row in cursor.fetchall()]
+
+        # Artist API metadata fetching is now handled asynchronously by the frontend via /api/artist-metadata
+        cursor.close()
+        conn.close()
         
-        # If no history, show all artists
-        if not top_artists:
-            cursor.execute("SELECT artist_id, name, artist_coverphoto FROM artists")
-            top_artists = [{
-                'artist_id': row[0],
-                'artist_name': row[1],
-                'artist_coverphoto': row[2],
-                'total_searches': 0
-            } for row in cursor.fetchall()]
+        return render_template('artists.html', top_artists=top_artists, songs=[])
         
         cursor.close()
         conn.close()
@@ -600,7 +524,7 @@ def moods():
             cursor.execute("""
                 SELECT s.song_id, s.title, s.song_coverphoto,
                        a.name AS artist_name, a.artist_coverphoto,
-                       m.mood_name, s.rating
+                       m.mood_name, s.rating, s.youtube_link
                 FROM songs s
                 JOIN artists a ON s.artist_id = a.artist_id
                 JOIN moods m ON s.mood_id = m.mood_id
@@ -616,7 +540,8 @@ def moods():
                 'artist_name': row[3],
                 'artist_coverphoto': row[4],
                 'mood_name': row[5],
-                'rating': float(row[6])
+                'rating': float(row[6]),
+                'youtube_link': row[7]
             } for row in cursor.fetchall()]
             
             # Get mood info
@@ -628,18 +553,17 @@ def moods():
             return render_template('moods.html', top_moods=[], songs=songs, 
                                  selected_mood_id=mood_id, mood_name=mood_info[0] if mood_info else '')
         
-        # Get top moods by user history
+        # Get all moods, including those without history
         cursor.execute("""
             SELECT 
                 m.mood_id,
                 m.mood_name,
-                SUM(ua.search_count) AS total_searches
-            FROM user_activity ua
-            JOIN songs s ON ua.song_id = s.song_id
-            JOIN moods m ON s.mood_id = m.mood_id
-            WHERE ua.user_id = %s
+                COALESCE(SUM(ua.search_count), 0) AS total_searches
+            FROM moods m
+            LEFT JOIN songs s ON m.mood_id = s.mood_id
+            LEFT JOIN user_activity ua ON s.song_id = ua.song_id AND ua.user_id = %s
             GROUP BY m.mood_id, m.mood_name
-            ORDER BY total_searches DESC
+            ORDER BY total_searches DESC, m.mood_name ASC
         """, (user_id,))
         
         top_moods = [{
@@ -647,15 +571,6 @@ def moods():
             'mood_name': row[1],
             'total_searches': row[2]
         } for row in cursor.fetchall()]
-        
-        # If no history, show all moods
-        if not top_moods:
-            cursor.execute("SELECT mood_id, mood_name FROM moods")
-            top_moods = [{
-                'mood_id': row[0],
-                'mood_name': row[1],
-                'total_searches': 0
-            } for row in cursor.fetchall()]
         
         cursor.close()
         conn.close()
@@ -684,7 +599,7 @@ def history():
         cursor.execute("""
             SELECT s.song_id, s.title, s.song_coverphoto,
                    a.name AS artist_name, a.artist_coverphoto,
-                   ua.search_count, ua.last_searched
+                   ua.search_count, ua.last_searched, s.youtube_link
             FROM user_activity ua
             JOIN songs s ON ua.song_id = s.song_id
             JOIN artists a ON s.artist_id = a.artist_id
@@ -699,7 +614,8 @@ def history():
             'artist_name': row[3],
             'artist_coverphoto': row[4],
             'search_count': row[5],
-            'last_searched': row[6]
+            'last_searched': row[6].strftime('%Y-%m-%d %H:%M'),
+            'youtube_link': row[7]
         } for row in cursor.fetchall()]
         
         cursor.close()
@@ -719,6 +635,146 @@ def logout():
     session.clear()
     flash('You have been logged out', 'info')
     return redirect(url_for('home'))
+
+# 🔹 New API Endpoints for Performance (Async Meta Fetching) 🔹
+
+@app.route('/api/track-metadata/<int:song_id>')
+def api_track_metadata(song_id):
+    """Fetch track metadata (genre, thumbnails) from AudioDB and cache it"""
+    conn = get_db_connection()
+    if not conn: return jsonify({'error': 'db error'}), 500
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT s.title, a.name as artist_name, s.song_coverphoto 
+            FROM songs s JOIN artists a ON s.artist_id = a.artist_id 
+            WHERE s.song_id = %s
+        """, (song_id,))
+        song = cursor.fetchone()
+        
+        if not song:
+            cursor.close(); conn.close()
+            return jsonify({'error': 'not found'}), 404
+
+        # Clean Strings for Search
+        def clean_query(q):
+            import re
+            return re.sub(r'\([^)]*\)|\[[^\]]*\]', '', q).strip()
+
+        clean_title = clean_query(song['title'])
+        clean_artist = clean_query(song['artist_name'])
+
+        # Search AudioDB - Attempt 1: Artist + Title
+        url = f"https://theaudiodb.com/api/v1/json/2/searchtrack.php?s={clean_artist}&t={clean_title}"
+        r = requests.get(url, timeout=5)
+        meta = {}
+        track = None
+        
+        if r.status_code == 200:
+            data = r.json()
+            if data.get('track'):
+                track = data['track'][0]
+        
+        # Search AudioDB - Attempt 2: Title only (Fallback if no track found)
+        if not track:
+            url_fallback = f"https://theaudiodb.com/api/v1/json/2/searchtrack.php?t={clean_title}"
+            r_fb = requests.get(url_fallback, timeout=5)
+            if r_fb.status_code == 200:
+                data_fb = r_fb.json()
+                if data_fb.get('track'):
+                    # Pick the first track that matches common sense or just first link
+                    track = data_fb['track'][0]
+
+        if track:
+            thumb = track.get('strTrackThumb') or track.get('strAlbumThumb')
+            yt_link = track.get('strMusicVid')
+            meta = {
+                'genre': track.get('strGenre'),
+                'album': track.get('strAlbum'),
+                'year': track.get('intYearReleased'),
+                'coverphoto': thumb,
+                'youtube_link': yt_link
+            }
+            
+            # Caching: Update DB if missing
+            updates = []
+            params = []
+            if thumb and ('placeholder' in str(song['song_coverphoto']) or not song['song_coverphoto']):
+                updates.append("song_coverphoto = %s")
+                params.append(thumb)
+            if yt_link:
+                updates.append("youtube_link = %s")
+                params.append(yt_link)
+            
+            if updates:
+                params.append(song_id)
+                cursor.execute(f"UPDATE songs SET {', '.join(updates)} WHERE song_id = %s", tuple(params))
+                conn.commit()
+
+        cursor.close(); conn.close()
+        return jsonify(meta)
+    except Exception as e:
+        if conn: conn.close()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/artist-metadata/<int:artist_id>')
+def api_artist_metadata(artist_id):
+    """Fetch artist thumbnail from AudioDB and cache it"""
+    conn = get_db_connection()
+    if not conn: return jsonify({'error': 'db error'}), 500
+    
+    try:
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT name, artist_coverphoto FROM artists WHERE artist_id = %s", (artist_id,))
+        artist = cursor.fetchone()
+        
+        if not artist:
+            cursor.close(); conn.close()
+            return jsonify({'error': 'not found'}), 404
+
+        # Clean Strings for Search
+        def clean_query(q):
+            import re
+            return re.sub(r'\([^)]*\)|\[[^\]]*\]', '', q).strip()
+
+        clean_name = clean_query(artist['name'])
+
+        # Search AudioDB - Attempt 1: Full name
+        url = f"https://theaudiodb.com/api/v1/json/2/search.php?s={clean_name}"
+        r = requests.get(url, timeout=5)
+        meta = {}
+        art = None
+        
+        if r.status_code == 200:
+            data = r.json()
+            if data.get('artists'):
+                art = data['artists'][0]
+        
+        # Search AudioDB - Attempt 2: First word of name (Broad fallback)
+        if not art and ' ' in clean_name:
+            first_word = clean_name.split(' ')[0]
+            url_fb = f"https://theaudiodb.com/api/v1/json/2/search.php?s={first_word}"
+            r_fb = requests.get(url_fb, timeout=5)
+            if r_fb.status_code == 200:
+                data_fb = r_fb.json()
+                if data_fb.get('artists'):
+                    art = data_fb['artists'][0]
+
+        if art:
+            thumb = art.get('strArtistThumb') or art.get('strArtistLogo')
+            meta = {'coverphoto': thumb}
+            
+            # Caching: Update DB if missing
+            if thumb and ('placeholder' in str(artist['artist_coverphoto']) or not artist['artist_coverphoto']):
+                cursor.execute("UPDATE artists SET artist_coverphoto = %s WHERE artist_id = %s", (thumb, artist_id))
+                conn.commit()
+
+        cursor.close(); conn.close()
+        return jsonify(meta)
+    except Exception as e:
+        if conn: conn.close()
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

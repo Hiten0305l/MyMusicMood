@@ -6,8 +6,8 @@
 
 <div class="song-info-layout" style="display: flex; gap: 48px; position: relative; z-index: 1;">
     <!-- Left Column: Album Art -->
-    <div style="width: 350px;">
-        <img src="{{ song.track_thumb or song.album_thumb or song.song_coverphoto }}" alt="{{ song.title }}" style="width: 100%; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);" onerror="this.src='https://via.placeholder.com/350x350?text={{ song.title | urlencode }}'">
+    <div style="width: 350px;" data-lazy-song="{{ song.song_id }}">
+        <img src="{{ song.track_thumb or song.album_thumb or song.song_coverphoto }}" alt="{{ song.title }}" class="card-image lazy-song-img" style="width: 100%; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);" onerror="this.src='https://dummyimage.com/350x350/18181b/ffffff&text={{ song.title | urlencode }}'">
     </div>
     
     <!-- Right Column: Details -->
@@ -17,17 +17,17 @@
         </div>
         
         <h1 style="font-size: 48px; font-weight: 800; letter-spacing: -2px; margin-bottom: 8px;">{{ song.title }}</h1>
-        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 32px;">
-            <img src="{{ song.artist_coverphoto }}" alt="{{ song.artist_name }}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" onerror="this.src='https://via.placeholder.com/32x32?text=A'">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 32px;" id="song-header-meta">
+            <img src="{{ song.artist_coverphoto }}" alt="{{ song.artist_name }}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" onerror="this.src='https://dummyimage.com/32x32/18181b/ffffff&text=A'">
             <a href="{{ url_for('artists', id=song.artist_id) }}" style="font-size: 18px; font-weight: 600;">{{ song.artist_name }}</a>
             <span style="color: var(--text-muted);">•</span>
-            <span style="color: var(--text-secondary);">{{ song.year or '2023' }}</span>
+            <span style="color: var(--text-secondary);" class="lazy-year">{{ song.year or '...' }}</span>
             <span style="color: var(--text-muted);">•</span>
             <span style="color: var(--text-secondary);">{{ song.rating }} <i class="ph-fill ph-star" style="color: var(--accent-primary);"></i></span>
         </div>
         
         <div style="display: flex; gap: 16px; margin-bottom: 40px;">
-            <button type="button" class="btn-primary" onclick='playSong(event, {{ song.title|tojson|safe }}, {{ song.artist_name|tojson|safe }}, "{{ song.track_thumb or song.album_thumb or song.song_coverphoto }}", "{{ song.youtube_link|default(\"\", true) }}");' style="display: flex; align-items: center; gap: 8px; font-size: 16px; padding: 14px 32px; border-radius: 30px;">
+            <button type="button" class="btn-primary" id="main-play-btn" onclick='playSong(event, {{ song.title|tojson|safe }}, {{ song.artist_name|tojson|safe }}, "{{ song.track_thumb or song.album_thumb or song.song_coverphoto }}", "{{ song.youtube_link|default("", true) }}");' style="display: flex; align-items: center; gap: 8px; font-size: 16px; padding: 14px 32px; border-radius: 30px;">
                 <i class="ph-fill ph-play"></i> Play Track
             </button>
             <button class="control-btn" style="width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center;">
@@ -47,18 +47,14 @@
                 <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Mood</div>
                 <a href="{{ url_for('moods', id=song.mood_id) }}"><div style="font-size: 16px; font-weight: 500;">{{ song.mood_name }}</div></a>
             </div>
-            {% if song.genre %}
-            <div>
+            <div id="lazy-genre-box" style="display: {% if song.genre %}block{% else %}none{% endif %};">
                 <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Genre</div>
-                <div style="font-size: 16px; font-weight: 500;">{{ song.genre }}</div>
+                <div style="font-size: 16px; font-weight: 500;" class="lazy-genre">{{ song.genre or '...' }}</div>
             </div>
-            {% endif %}
-            {% if song.album %}
-            <div>
+            <div id="lazy-album-box" style="display: {% if song.album %}block{% else %}none{% endif %};">
                 <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 4px;">Album</div>
-                <div style="font-size: 16px; font-weight: 500;">{{ song.album }}</div>
+                <div style="font-size: 16px; font-weight: 500;" class="lazy-album">{{ song.album or '...' }}</div>
             </div>
-            {% endif %}
         </div>
         
         {% if song.description %}
@@ -69,4 +65,42 @@
         {% endif %}
     </div>
 </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const songId = "{{ song.song_id }}";
+    const img = document.querySelector('.lazy-song-img');
+    const yearSpan = document.querySelector('.lazy-year');
+    const genreDiv = document.querySelector('.lazy-genre');
+    const albumDiv = document.querySelector('.lazy-album');
+    const playBtn = document.getElementById('main-play-btn');
+
+    fetch(`/api/track-metadata/${songId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.coverphoto || data.youtube_link) {
+                if (data.coverphoto) img.src = data.coverphoto;
+                if (playBtn) {
+                    const parts = playBtn.getAttribute('onclick').split(',');
+                    if (parts.length >= 5) {
+                        if (data.coverphoto) parts[3] = ` "${data.coverphoto}"`;
+                        if (data.youtube_link) parts[4] = ` "${data.youtube_link}")`;
+                        playBtn.setAttribute('onclick', parts.join(','));
+                    }
+                }
+            }
+            if (data.year) yearSpan.textContent = data.year;
+            if (data.genre) {
+                genreDiv.textContent = data.genre;
+                document.getElementById('lazy-genre-box').style.display = 'block';
+            }
+            if (data.album) {
+                albumDiv.textContent = data.album;
+                document.getElementById('lazy-album-box').style.display = 'block';
+            }
+        })
+        .catch(err => console.error('Meta load failed:', err));
+});
+</script>
 {% endblock %}

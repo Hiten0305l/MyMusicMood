@@ -5,19 +5,21 @@
 {% if selected_artist_id %}
 <!-- Showing Songs for a specific artist -->
 <div class="section-title">
-    <a href="{{ url_for('artists') }}" style="margin-right: 16px; color: var(--text-secondary);"><i class="ph ph-arrow-left"></i></a>
+    <a href="{{ url_for('artists') }}" style="margin-right: 16px; color: var(--text-secondary);"><i
+            class="ph ph-arrow-left"></i></a>
     <h2 style="font-size: 32px;">{{ artist_name }}'s Tracks</h2>
 </div>
 
 <div class="grid-container">
     {% for song in songs %}
-    <a href="{{ url_for('song_info', song_id=song.song_id) }}" class="glass-card">
-        <img src="{{ song.song_coverphoto }}" alt="{{ song.title }}" class="card-image" onerror="this.src='https://via.placeholder.com/300x300?text={{ song.title | urlencode }}'">
+    <a href="{{ url_for('song_info', song_id=song.song_id) }}" class="glass-card" data-lazy-song="{{ song.song_id }}">
+        <img src="{{ song.song_coverphoto }}" alt="{{ song.title }}" class="card-image lazy-song-img"
+            onerror="this.src='https://dummyimage.com/300x300/18181b/ffffff&text={{ song.title | urlencode }}'">
         <div class="card-title">{{ song.title }}</div>
         <div class="card-subtitle" style="margin-top: 4px; font-size: 11px; color: var(--accent-primary);">
             <i class="ph-fill ph-star"></i> {{ song.rating }}
         </div>
-        <div class="play-overlay" onclick='playSong(event, {{ song.title|tojson|safe }}, {{ song.artist_name|tojson|safe }}, "{{ song.song_coverphoto }}", null)'><i class="ph-fill ph-play" style="margin-left: 2px;"></i></div>
+        <div class="play-overlay" onclick='playSong(event, {{ song.title|tojson|safe }}, {{ song.artist_name|tojson|safe }}, "{{ song.song_coverphoto }}", {{ song.youtube_link|tojson|safe if song.youtube_link else "null" }})'><i class="ph-fill ph-play" style="margin-left: 2px;"></i></div>
     </a>
     {% endfor %}
 </div>
@@ -31,23 +33,218 @@
     <h2>Explore Artists</h2>
 </div>
 
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 32px;">
+<div class="artist-grid">
     {% for artist in top_artists %}
-    <a href="{{ url_for('artists', id=artist.artist_id) }}" style="text-align: center; display: block;" class="hover-scale">
-        <img src="{{ artist.artist_coverphoto }}" alt="{{ artist.artist_name }}" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; box-shadow: 0 10px 20px rgba(0,0,0,0.3); margin-bottom: 16px; transition: var(--transition-fast);" onerror="this.src='https://via.placeholder.com/150x150?text={{ artist.artist_name.replace(' ', '+') }}'">
-        <div style="font-size: 15px; font-weight: 600;">{{ artist.artist_name }}</div>
-        {% if artist.total_searches > 0 %}
-        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">{{ artist.total_searches }} Plays</div>
-        {% endif %}
-    </a>
+    <div class="artist-item" data-lazy-artist="{{ artist.artist_id }}">
+        <a href="{{ url_for('artists', id=artist.artist_id) }}" class="artist-card">
+            <div class="artist-image-wrapper">
+                <img src="{{ artist.artist_coverphoto }}" alt="{{ artist.artist_name }}" class="lazy-artist-img"
+                    onload="this.style.opacity=1"
+                    onerror="this.classList.add('broken'); this.nextElementSibling.style.display='flex';">
+                <div class="artist-initials" style="display: none;">{{ artist.artist_name[0] }}</div>
+                <div class="artist-overlay">
+                    <i class="ph-fill ph-users"></i>
+                </div>
+            </div>
+            <div class="artist-info">
+                <div class="artist-name">{{ artist.artist_name }}</div>
+                <div class="artist-stats">
+                    <i class="ph ph-headphones"></i> {{ artist.total_searches }} Plays
+                </div>
+            </div>
+        </a>
+    </div>
     {% endfor %}
 </div>
 
 <!-- Extra hover CSS for circles explicitly -->
 <style>
-.hover-scale img:hover { transform: scale(1.05); box-shadow: 0 15px 30px rgba(0,0,0,0.4); }
-.hover-scale:hover div:first-of-type { color: var(--accent-primary); }
+    .artist-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 40px 24px;
+        padding-top: 20px;
+    }
+
+    .artist-item {
+        display: flex;
+        justify-content: center;
+    }
+
+    .artist-card {
+        text-decoration: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transition: var(--transition-smooth);
+        width: 100%;
+        max-width: 180px;
+    }
+
+    .artist-image-container {
+        position: relative;
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        margin-bottom: 20px;
+        padding: 4px;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        transition: var(--transition-smooth);
+        overflow: hidden;
+    }
+
+    .artist-image-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        overflow: hidden;
+        background: var(--bg-surface-light);
+    }
+
+    .artist-card img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        transition: var(--transition-smooth);
+        opacity: 0;
+        /* Fade in on load */
+    }
+
+    .artist-card img.broken {
+        display: none;
+    }
+
+    .artist-initials {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--bg-surface-light), var(--bg-surface));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        font-weight: 800;
+        color: var(--accent-primary);
+        text-shadow: 0 0 20px rgba(255, 42, 95, 0.4);
+    }
+
+    .artist-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 42, 95, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: var(--transition-fast);
+        backdrop-filter: blur(4px);
+        border-radius: 50%;
+    }
+
+    .artist-overlay i {
+        font-size: 32px;
+        color: white;
+        transform: scale(0.8);
+        transition: var(--transition-smooth);
+    }
+
+    .artist-card:hover .artist-image-container {
+        transform: translateY(-10px);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 42, 95, 0.2);
+        border-color: var(--accent-primary);
+    }
+
+    .artist-card:hover img {
+        transform: scale(1.1);
+    }
+
+    .artist-card:hover .artist-overlay {
+        opacity: 1;
+    }
+
+    .artist-card:hover .artist-overlay i {
+        transform: scale(1);
+    }
+
+    .artist-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 6px;
+        transition: var(--transition-fast);
+    }
+
+    .artist-stats {
+        font-size: 13px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .artist-card:hover .artist-name {
+        color: var(--accent-primary);
+    }
 </style>
 {% endif %}
 
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Lazy load artist photos
+        document.querySelectorAll('[data-lazy-artist]').forEach(card => {
+            const artistId = card.getAttribute('data-lazy-artist');
+            const img = card.querySelector('.lazy-artist-img');
+            const isPlaceholder = !img.src || img.src.includes('placeholder') || img.src.includes('dummyimage') || img.src === window.location.href;
+            if (isPlaceholder) {
+                fetch(`/api/artist-metadata/${artistId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.coverphoto) {
+                            img.src = data.coverphoto;
+                            img.classList.remove('broken');
+                            img.style.display = 'block';
+                            img.style.opacity = '1';
+                            // Hide initials if image found
+                            const initials = img.nextElementSibling;
+                            if (initials) initials.style.display = 'none';
+                        }
+                    });
+            }
+        });
+
+        // Lazy load song metadata
+        document.querySelectorAll('[data-lazy-song]').forEach(card => {
+            const songId = card.getAttribute('data-lazy-song');
+            const img = card.querySelector('.lazy-song-img');
+            if (img.src.includes('dummyimage') || data.youtube_link) {
+                fetch(`/api/track-metadata/${songId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.coverphoto || data.youtube_link) {
+                            if (data.coverphoto) img.src = data.coverphoto;
+                            const playBtn = card.querySelector('.play-overlay');
+                            if (playBtn) {
+                                const parts = playBtn.getAttribute('onclick').split(',');
+                                if (parts.length >= 5) {
+                                    if (data.coverphoto) parts[3] = ` "${data.coverphoto}"`;
+                                    if (data.youtube_link) parts[4] = ` "${data.youtube_link}")`;
+                                    playBtn.setAttribute('onclick', parts.join(','));
+                                }
+                            }
+                        }
+                    });
+            }
+        });
+    });
+</script>
 {% endblock %}

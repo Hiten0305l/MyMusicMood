@@ -12,13 +12,13 @@
 <div class="grid-container">
     {% for song in songs %}
     <a href="{{ url_for('song_info', song_id=song.song_id) }}" class="glass-card">
-        <img src="{{ song.song_coverphoto }}" alt="{{ song.title }}" class="card-image" onerror="this.src='https://via.placeholder.com/300x300?text={{ song.title | urlencode }}'">
+        <img src="{{ song.song_coverphoto }}" alt="{{ song.title }}" class="card-image" onerror="this.src='https://dummyimage.com/300x300/18181b/ffffff&text={{ song.title | urlencode }}'">
         <div class="card-title">{{ song.title }}</div>
         <div class="card-subtitle">{{ song.artist_name }}</div>
         <div class="card-subtitle" style="margin-top: 4px; font-size: 11px; color: var(--accent-primary);">
             <i class="ph-fill ph-star"></i> {{ song.rating }}
         </div>
-        <div class="play-overlay" onclick='playSong(event, {{ song.title|tojson|safe }}, {{ song.artist_name|tojson|safe }}, "{{ song.song_coverphoto }}", null)'><i class="ph-fill ph-play" style="margin-left: 2px;"></i></div>
+        <div class="play-overlay" onclick='playSong(event, {{ song.title|tojson|safe }}, {{ song.artist_name|tojson|safe }}, "{{ song.song_coverphoto }}", {{ (song.youtube_link|tojson|safe) if song.youtube_link else "null" }})'><i class="ph-fill ph-play" style="margin-left: 2px;"></i></div>
     </a>
     {% endfor %}
 </div>
