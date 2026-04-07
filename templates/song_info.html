@@ -7,7 +7,7 @@
 <div class="song-info-layout" style="display: flex; gap: 48px; position: relative; z-index: 1;">
     <!-- Left Column: Album Art -->
     <div style="width: 350px;">
-        <img src="{{ song.song_coverphoto }}" alt="{{ song.title }}" style="width: 100%; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);" onerror="this.src='https://via.placeholder.com/350x350?text={{ song.title | urlencode }}'">
+        <img src="{{ song.track_thumb or song.album_thumb or song.song_coverphoto }}" alt="{{ song.title }}" style="width: 100%; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);" onerror="this.src='https://via.placeholder.com/350x350?text={{ song.title | urlencode }}'">
     </div>
     
     <!-- Right Column: Details -->
@@ -27,7 +27,7 @@
         </div>
         
         <div style="display: flex; gap: 16px; margin-bottom: 40px;">
-            <button class="btn-primary" style="display: flex; align-items: center; gap: 8px; font-size: 16px; padding: 14px 32px; border-radius: 30px;">
+            <button class="btn-primary" onclick="playSong('{{ song.title | replace(\"'\", \"\\\\'\") }}', '{{ song.artist_name | replace(\"'\", \"\\\\'\") }}', '{{ song.track_thumb or song.album_thumb or song.song_coverphoto }}'); {% if song.youtube_link %}window.open('{{ song.youtube_link }}', '_blank');{% endif %}" style="display: flex; align-items: center; gap: 8px; font-size: 16px; padding: 14px 32px; border-radius: 30px;">
                 <i class="ph-fill ph-play"></i> Play Track
             </button>
             <button class="control-btn" style="width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: center;">
